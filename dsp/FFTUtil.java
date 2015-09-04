@@ -41,19 +41,33 @@ public class FFTUtil {
 		final double[]cosTable = new double[hlen];
 		final double[]sinTable = new double[hlen];
 		
-		final double theta =  sign*TWOPI/(double)len;
+		final double theta =  TWOPI/(double)len;
 		
 		cosTable[0]=1;
 		// we exploit the symmetries of the 
 		// complex roots of unity
-		for (int i = 1; i<qlen; i++) {
-			double c=cos(i*theta);
-			cosTable[i     ] = c;
-			sinTable[qlen-i] = c;
-			cosTable[hlen-i] = -c;
-			sinTable[qlen+i] = c;
+		if (sign <0) {
+			for (int i = 1; i<qlen; i++) {
+				double c=cos(i*theta);
+				cosTable[i     ] = c;
+				sinTable[qlen-i] = c;
+				
+				cosTable[hlen-i] = -c;
+				sinTable[qlen+i] = c;
+			}
+			sinTable[qlen]=cosTable[0];
+		} else {
+			for (int i = 1; i<qlen; i++) {
+				double c=cos(i*theta);
+				cosTable[i     ] = c;
+				sinTable[qlen-i] = -c;
+				
+				cosTable[hlen-i] = -c;
+				sinTable[qlen+i] = -c;
+			}
+			sinTable[qlen]=-cosTable[0];
 		}
-		sinTable[qlen]=cosTable[0];
+		
 		
 		return Pair.of(cosTable,sinTable);
 	}
@@ -81,19 +95,29 @@ public class FFTUtil {
 	public static double[] iexpTable2 (int len, int sign) {
 		
 		final double[] wtable = new double[len];	
-		final double theta = -sign*TWOPI/(double)len;
+		final double theta = TWOPI/(double)len;
 		
 		int qlen = len>>1;
 		wtable[0]=1;
-		
-		for (int i = 2, j=1; i<qlen; i+=2, j++) {
-			double c=cos(j*theta);
-				   wtable[i] = c;
-			wtable[qlen-i+1] = c;
-			wtable[len-i]   = -c;
-			wtable[qlen+i+1] = c;
+		if (sign <0 ) {
+			for (int i = 2, j=1; i<qlen; i+=2, j++) {
+				double c=cos(j*theta);
+					   wtable[i] = c;
+				wtable[qlen-i+1] = c;
+				wtable[len-i]   = -c;
+				wtable[qlen+i+1] = c;
+			}
+			wtable[qlen+1]=wtable[0];
+		} else {
+			for (int i = 2, j=1; i<qlen; i+=2, j++) {
+				double c=cos(j*theta);
+					   wtable[i] = c;
+				wtable[qlen-i+1] = -c;
+				wtable[len-i]   = -c;
+				wtable[qlen+i+1] = -c;
+			}
+			wtable[qlen+1]=-wtable[0];
 		}
-		wtable[qlen+1]=wtable[0];
 		return wtable;
 	}
 

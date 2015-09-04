@@ -379,7 +379,7 @@ public class FFTProc {
  	public static void cfft( float[] x, boolean forward ) {
  		double theta, wpr, wpi, wr, wi, tmp ;	   
 		int sgn=1, j;
-		float rtemp, itemp ;
+		double rtemp, itemp ;
 		
 		int nfft=FFT.nfft(x.length);	
 		if (x.length!= nfft)
@@ -394,20 +394,20 @@ public class FFTProc {
 	    	//System.out.println("N// "+N+" hn "+ hN);
 	        theta =  sgn*TWOPI/N ;
 	        tmp =  sin(0.5*theta );
-	        wpr =  -2.*tmp*tmp ;
+	        wpr =  -2.0*tmp*tmp ;
 	      //  wpr = cos(theta)-1.0;
 	        wpi = sin(theta)  ;
-	        wr = 1.f ;
-	        wi = 0.f ;       	
+	        wr = 1.0 ;
+	        wi = 0.0 ;       	
 	        for(int m = 0 ; m < N ; m += 2 ){
 	        	//System.out.println("m "+ m);	        	
 	            for(int i = m; i < len; i+= hN ){
 	                j = i + N ;
 	                //System.out.println("i "+ i+ " j "+j+" hn "+ hN+ " N "+ N);
- 	                rtemp = (float) (wr*x[j] - wi*x[j+1]) ;
- 	                itemp = (float) (wr*x[j+1] + wi*x[j]) ;	 
-	                x[j] = x[i] - rtemp ;
-	                x[j+1] = x[i+1] - itemp ;
+ 	                rtemp =  wr*x[j] - wi*x[j+1] ;
+ 	                itemp =  wr*x[j+1] + wi*x[j] ;	 
+	                x[j] = (float) (x[i] - rtemp) ;
+	                x[j+1] = (float) (x[i+1] - itemp) ;
 	                x[i] += rtemp ;
 	                x[i+1] += itemp ;            
 	            }
@@ -420,7 +420,7 @@ public class FFTProc {
 	    // scale output
 	    if (!forward) {
 			for (int u=0; u<len; u++) {
-				x[u] /=(float)len;		
+				x[u] =(float) (2.0*x[u]/len);		
 				if (Math.abs(x[u]) <=tol)
 					x[u]=0;
 			}
@@ -466,15 +466,16 @@ public class FFTProc {
 	        int k=-tablestep;
 	        for(int m = 0 ; m < mmax ; m += 2 ){
 	        	k+=tablestep;
-	        	//System.out.println (m+ " wr: " +wr +" wi "+ wi +" k "+k);
-	            float rtemp, itemp ;
+	        	double rtemp;
+				//System.out.println (m+ " wr: " +wr +" wi "+ wi +" k "+k);
+	            double itemp ;
 	            for(int i = m; i < len ; i += delta ){
 	                int j = i + mmax ;
 	                // complex multiplication twiddle
-	                rtemp = (float) (cosTable[k]*x[j] + sinTable[k]*x[j+1]) ;
-	                itemp = (float) (cosTable[k]*x[j+1] - sinTable[k]*x[j]) ;
-	                x[j] = x[i] - rtemp ;
-	                x[j+1] = x[i+1] - itemp ;
+	                rtemp =   (cosTable[k]*x[j] + sinTable[k]*x[j+1]) ;
+	                itemp =   (cosTable[k]*x[j+1] - sinTable[k]*x[j]) ;
+	                x[j] = (float) (x[i] - rtemp) ;
+	                x[j+1] = (float) (x[i+1] - itemp) ;
 	                x[i] += rtemp ;
 	                x[i+1] += itemp ;            
 	            }
@@ -486,7 +487,7 @@ public class FFTProc {
 
 	    if (!forward) {
 			for (int u=0; u<len; u++) {
-				x[u] /=(float)len;		
+				x[u] =(float) (2.0*x[u]/len);			
 				if (Math.abs(x[u]) <=tol)
 					x[u]=0;
 			}

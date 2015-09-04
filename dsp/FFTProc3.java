@@ -829,7 +829,7 @@ public static float[] rfftp2 (float[] g,Pair<double[],double[]> ptab){
 			throw new IllegalArgumentException("Array size mismatch " + x.length);
 
 		int  len = x.length ; // ND
-		double theta, wpr, wpi, wr, wi, tmp ;	   
+		double theta, alpha, beta, wr, wi, tmp ;	   
 		int sgn=1, j;
 		if (forward) 
 			sgn=-1;
@@ -838,15 +838,17 @@ public static float[] rfftp2 (float[] g,Pair<double[],double[]> ptab){
         //System.out.println("len "+len);
  
         float rtemp, itemp ;
-	    for(int N = 2, hN=1 ; N < len ;	N = hN ){
-	    
-	         hN = N<<1 ;
+        int hN=1 ;
+        int N=2;
+        while (N < len) {
+            hN = N<<1 ;
+	        
 	    	//System.out.println("N// "+N+" hn "+ hN);
 	    	
 	        theta =  sgn*TWOPI/N ;
 	        tmp= sin(0.5*theta );
-	        wpr =  -2.*tmp*tmp ;
-	        wpi =  sin(theta) ;
+	        alpha =  -2.*tmp*tmp ;
+	        beta =  sin(theta) ;
 	        wr = 1.f ;
 	        wi = 0.f ;       	
 	        for(int m = 0 ; m < N ; m += 2 ){
@@ -862,15 +864,17 @@ public static float[] rfftp2 (float[] g,Pair<double[],double[]> ptab){
 	                x[i+1] += itemp ;            
 	            }
 	            tmp = wr;
-				wr += tmp*wpr - wi*wpi ;
-	            wi += wi*wpr + tmp*wpi ;
+				wr += tmp*alpha -wi*beta ;
+	            wi += wi*alpha + tmp*beta;
 	        }
+	    
+	        N=hN;
 	    }
 	 
 	    // scale output
 	    if (!forward) {
 			for (int u=0; u<len; u++) {
-				x[u] /=(float)len;		
+				x[u] /=(float)len*0.5;		
 				if (Math.abs(x[u]) <=tol)
 					x[u]=0;
 			}
@@ -981,8 +985,9 @@ public static float[] rfftp2 (float[] g,Pair<double[],double[]> ptab){
 	            x[i+1] = itemp ;
 	        }
 
-	        for( m = N>>1 ; m >= 2 && j >= m ; m >>= 1 )
+	        for( m = N>>1 ; m >= 2 && j >= m ; m >>= 1 ) {
 	            j -= m ;
+	        }
 	    }
 	}
 	/**
