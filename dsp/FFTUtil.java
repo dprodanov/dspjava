@@ -153,7 +153,7 @@ public class FFTUtil {
 			int N=x.length;
 		    float rtemp, itemp ;
 		    int i, j, m ;
-		    for( i = j = 0 ; i < N ; i += 2, j += m )
+		    for( i =0, j = 0 ; i < N ; i += 2, j += m )
 		    {
 		        if( j > i ){
 		            rtemp = x[j] ; 
@@ -164,6 +164,25 @@ public class FFTUtil {
 		            x[i+1] = itemp ;
 		        }
 	
+		        for( m = N>>1 ; m >= 2 && j >= m ; m >>= 1 )
+		            j -= m ;
+		    }
+		}
+	 	
+	 	public static void bit_reverse2( double[] x) {	
+			int N=x.length;
+		    double rtemp, itemp ;
+		    int i, j, m ;
+		    for (i =0, j = 0 ; i < N ; i += 2, j += m ) {
+		        if( j > i ){
+		            rtemp = x[j] ; 
+		            itemp = x[j+1] ; /* complex exchange */
+		            x[j] = x[i] ; 
+		            x[j+1] = x[i+1] ;
+		            x[i] = rtemp ; 
+		            x[i+1] = itemp ;
+		        }
+
 		        for( m = N>>1 ; m >= 2 && j >= m ; m >>= 1 )
 		            j -= m ;
 		    }
@@ -212,5 +231,27 @@ public class FFTUtil {
 			}
 			return A;
 		}
+		
+		/*
+		public static float[] zeroPaddEnd(float s[]) {
+			final int n=s.length;
+			final int k=DSP.nextpow2(n);
+			final int n2=DSP.pow2(k);
+			//System.out.println("n2 " +n2);
+			float[] spad=new float[n2];
+			System.arraycopy(s, 0, spad, 0, n);
+			return spad;
+		}
+		
+		public static double[] zeroPaddEnd(double s[]) {
+			final int n=s.length;
+			final int k=DSP.nextpow2(n);
+			final int n2=DSP.pow2(k);
+			//System.out.println("n2 " +n2);
+			double[] spad=new double[n2];
+			System.arraycopy(s, 0, spad, 0, n);
+			return spad;
+		}
+		*/
 
 }

@@ -1,17 +1,9 @@
 package test.dsp;
 import dsp.FFTProc;
-import dsp.FFTProc3;
 import dsp.FFTUtil;
-import ij.ImageJ;
-import ij.ImagePlus;
-import ij.ImageStack;
-import ij.process.FloatProcessor;
 import ijaux.TestUtil;
 import ijaux.Util;
 import ijaux.datatype.Pair;
-import ijaux.dsp.DSP;
-import ijaux.dsp.FFT;
-import static java.lang.Math.*;
 
 public class testFFT4
  {

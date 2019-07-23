@@ -1,10 +1,10 @@
 package dsp;
 
 
-import ij.process.*;
 import ijaux.datatype.*;
-import ijaux.dsp.DSP;
-import ijaux.dsp.FFT;
+
+import static dsp.DSP.*;
+import static dsp.FFTUtil.*;
 import static java.lang.Math.*;
  
 
@@ -22,7 +22,7 @@ public class FFTProc {
 	private int len=-1;
 	
 	public FFTProc(int n) {
-		n=FFT.nfft(n);
+		n=DSP.nfft(n);
 		init(n, -1);
 		len=n;		
 	}
@@ -217,6 +217,41 @@ public class FFTProc {
 		}
 		return G; 
 	}
+	
+	
+	public static double[] twiddleAndUnfold(double [] ct, double[] g2){
+		int N=g2.length;
+		//System.out.println(N);
+		//System.out.println("method 4");
+		double[] G = new double[N<<1];
+		for (int k = 0; k < N; k+=2){
+			int u = N-k;
+			if (1>k) u=u-N;	
+			//System.out.println(k  +" "+u);
+			//System.out.println(k+"  "+(k+1)+" "+ (u+1)+ " "+ (u)+" "+ (N-k-1));
+			// Real part:
+			G[k]=(-ct[k+1]*g2[u+1]-ct[k]*g2[u]+g2[u]-ct[k+1]*g2[k+1]+ct[k]*g2[k]);
+			// Imaginary part:
+			G[k+1]=( ct[k  ]*g2[u+1]-g2[u+1]-ct[k+1]*g2[u]+ct[k]*g2[k+1]+g2[k]*ct[k+1]);		
+			//System.out.println("// "+G[k  ]+"  "+G[k+1]);
+		}		
+		//last real
+		G[N]=g2[0]-g2[1];
+		//last imaginary
+		G[N+1]=0;
+		// unfolding the full FFT
+		for (int i = 0; i<N; i+=2){
+			int  k = N*2-1-i;// full measure
+			//System.out.println(i+" "+(k));
+			// Real part:
+			G[k-1] = G[2+i];
+			// Imaginary part:
+			G[k] = - G[2+i+1]; 
+		}
+		return G; 
+	}	 
+	
+	
 	/*
 	 *  for compatibility with vanilla ImageJ
 	 *  twiddle factors are pre-computed 
@@ -237,7 +272,7 @@ public class FFTProc {
 		final int len = real.length;
 		
 		//compute twiddle coefficients
- 		Pair<double[], double[]> ptab=FFTUtil.expTable (len, sign);
+ 		Pair<double[], double[]> ptab=FFTUtil.expTable2 (len, sign);
  		final double[] cosTable =ptab.first;
  		final double[] sinTable =ptab.second;
 			
@@ -290,8 +325,7 @@ public class FFTProc {
  
 		// Bit reversal:
 		final int len = real.length;
-		//final int hlen = real.length/2;
-		//System.out.println("hlen " +hlen);
+
 		FFTUtil.bit_reverse(real);
 		
 		//compute twiddle coefficients
@@ -336,7 +370,7 @@ public class FFTProc {
 	 * computes forward FFT, real only input, size PoW2
 	 */
 	public static float[] rfft(float[] g){		
-		int nfft=FFT.nfft(g.length); 
+		int nfft=DSP.nfft(g.length); 
 		// checks if the length of the array is power of two
 	    if (g.length!= nfft)
 			throw new IllegalArgumentException("Array size mismatch " + g.length);
@@ -351,11 +385,27 @@ public class FFTProc {
 		return GL;
 	}
 	
+	public static double[] rfft(double[] g){		
+		int nfft=nfft(g.length); 
+		// checks if the length of the array is power of two
+	    if (g.length!= nfft)
+			throw new IllegalArgumentException("Array size mismatch " + g.length);
+	    // computes the final twiddle coefficients
+	    double[] ct=dPrecompute2(nfft);
+	    // computes interlaced FFT of the input
+	    cfft(g, true);
+	    //Util.printFloatArray(g);
+	    // recalculates the values to get the rFFT (only the left part)
+	    double[] GL = twiddleAndUnfold(ct,g);
+	    // calculates the right part which is a mirror of the left [z(i)==z*(N-i)]
+		return GL;
+	}
+	
  
 	public static float[] rfftp (float[] g,Pair<double[],double[]> ptab){
 		
 		// checks if the length of the array is power of two
-		int nfft=FFT.nfft(g.length); 
+		int nfft=DSP.nfft(g.length); 
 	    if (g.length!= nfft)
 			throw new IllegalArgumentException("Array size mismatch " + g.length);
 	 
@@ -368,8 +418,28 @@ public class FFTProc {
 	    double[] ct = FFTUtil.dPrecompute2(nfft);    
 	    // calculates the right part which is a mirror of the left [z(i)==z*(N-i)]
 	    float[]  GL = twiddleAndUnfold(ct,g);
-			return GL;
+		return GL;
 	}
+
+	public static double[] rfftp (double[] g, Pair<double[],double[]> ptab){
+		
+		// checks if the length of the array is power of two
+		int nfft=DSP.nfft(g.length); 
+	    if (g.length!= nfft)
+			throw new IllegalArgumentException("Array size mismatch " + g.length);
+	 
+	    // compute the FFT of the input (that's a black box for the method)
+	    cfftp(g, true, ptab);
+	   //System.out.println("cfftp step");
+	   //Util.printFloatArray(g);
+	   
+	   	// computes the coefficients
+	    double[] ct = FFTUtil.dPrecompute2(nfft);    
+	    // calculates the right part which is a mirror of the left [z(i)==z*(N-i)]
+	    double[]  GL = twiddleAndUnfold(ct,g);
+		return GL;
+	}
+	
 	
 /*
  * Danielson and Lanczos FFT algorithm
@@ -381,13 +451,13 @@ public class FFTProc {
 		int sgn=1, j;
 		double rtemp, itemp ;
 		
-		int nfft=FFT.nfft(x.length);	
+		int nfft=DSP.nfft(x.length);	
 		if (x.length!= nfft)
 			throw new IllegalArgumentException("Array size mismatch " + x.length);
 
 		int  len = x.length ; // ND
 		if (forward) sgn=-1;
-        FFTUtil.bit_reverse2(x) ;
+        bit_reverse2(x) ;
         
 	    for(int N = 2, hN=1 ; N < len ;	N = hN ){
 	         hN = N<<1 ;
@@ -404,6 +474,7 @@ public class FFTProc {
 	            for(int i = m; i < len; i+= hN ){
 	                j = i + N ;
 	                //System.out.println("i "+ i+ " j "+j+" hn "+ hN+ " N "+ N);
+	                /* complex multiplication */
  	                rtemp =  wr*x[j] - wi*x[j+1] ;
  	                itemp =  wr*x[j+1] + wi*x[j] ;	 
 	                x[j] = (float) (x[i] - rtemp) ;
@@ -411,6 +482,7 @@ public class FFTProc {
 	                x[i] += rtemp ;
 	                x[i+1] += itemp ;            
 	            }
+	            /* complex multiplication */
 	            tmp = wr;
 				wr += tmp*wpr - wi*wpi ;
 	            wi += wi*wpr + tmp*wpi ;
@@ -428,20 +500,75 @@ public class FFTProc {
 	    
 	}
 
+public static void cfft( double[] x, boolean forward ) {
+		
+		int nfft=nfft(x.length);	
+		if (x.length!= nfft)
+			throw new IllegalArgumentException("Array size mismatch " + x.length);
+
+		int  len = x.length ; // ND
+		double theta, wpr, wpi, wr, wi, tmp ;	   
+		int sgn=1, j;
+		if (forward) 
+			sgn=-1;
+
+        bit_reverse2(x) ;
+        //System.out.println("len "+len);
  
+        float rtemp, itemp ;
+	    for(int N = 2, hN=1 ; N < len ;	N = hN ){
+	    
+	         hN = N<<1 ;
+	    	//System.out.println("N// "+N+" hn "+ hN);
+	    	
+	        theta =  sgn*TWOPI/N ;
+	        tmp= sin(0.5*theta );
+	        wpr =  -2.*tmp*tmp ;
+	        wpi =  sin(theta) ;
+	        wr = 1.f ;
+	        wi = 0.f ;       	
+	        for(int m = 0 ; m < N ; m += 2 ){
+	        	//System.out.println("m "+ m);	        	
+	            for(int i = m; i < len; i+= hN ){
+	                j = i + N ;
+	                //System.out.println("i "+ i+ " j "+j+" hn "+ hN+ " N "+ N);
+ 	                rtemp = (float) (wr*x[j] - wi*x[j+1]) ;
+ 	                itemp = (float) (wr*x[j+1] + wi*x[j]) ;	 
+	                x[j] = x[i] - rtemp ;
+	                x[j+1] = x[i+1] - itemp ;
+	                x[i] += rtemp ;
+	                x[i+1] += itemp ;            
+	            }
+	            tmp = wr;
+				wr += tmp*wpr - wi*wpi ;
+	            wi += wi*wpr + tmp*wpi ;
+	        }
+	    }
+	 
+	    // scale output
+	    if (!forward) {
+			for (int u=0; u<len; u++) {
+				x[u] /=(float)len;		
+				if (Math.abs(x[u]) <=tol)
+					x[u]=0;
+			}
+		}
+	    
+	}
 
 	public static Pair<double[],double[]> cfftp(float[] x, boolean forward, Pair<double[],double[]> ptab){
 	   
-		int nfft=FFT.nfft(x.length);	
+		int nfft=DSP.nfft(x.length);	
 	    if (x.length!= nfft)
 			throw new IllegalArgumentException("Array size mismatch " + x.length);
 	    
 	    nfft=nfft>>1;
 	    int len = x.length ;
-	    //bit_reverse2( x, len ) ;
+
 	  //  System.out.println("len "+ len);
 	    FFTUtil.bit_reverse2( x ) ;
 	    int sign=forward? -1 : 1 ;
+	    
 		//compute twiddle coefficients
 	    if (ptab==null)
 	    	ptab=FFTUtil.expTable2 (len, sign);
@@ -449,6 +576,74 @@ public class FFTProc {
  		 double[]sinTable=ptab.second;
  		
  		 if (cosTable.length!=nfft) {
+ 			 System.out.println("table length  mismatch" + cosTable.length );
+ 			ptab=FFTUtil.expTable (len, sign);
+ 	 		cosTable=ptab.first;
+ 	 		sinTable =ptab.second;
+ 		 }
+ 		
+/* 		System.out.println("tab len " + cosTable.length);
+ 		ComplexArray icm=new ComplexArray(cosTable, sinTable, false);
+        System.out.println(icm);*/
+ 		
+ 		int delta =0;  
+ 		int tablestep = x.length >>1;
+	    for(int mmax = 2 ; mmax < len ; mmax = delta ){
+	        delta = mmax<<1 ;
+       // System.out.println ( " delta: " +delta +" tablestep "+ tablestep +" mmax "+ mmax);
+	        int k=-tablestep;
+	        for(int m = 0 ; m < mmax ; m += 2 ){
+	        	k+=tablestep;
+	        	double rtemp;
+				//System.out.println (m+ " wr: " +wr +" wi "+ wi +" k "+k);
+	            double itemp ;
+	            for(int i = m; i < len ; i += delta ){
+	                int j = i + mmax ;
+	                // complex multiplication twiddle
+	                rtemp =   (cosTable[k]*x[j] + sinTable[k]*x[j+1]) ;
+	                itemp =   (cosTable[k]*x[j+1] - sinTable[k]*x[j]) ;
+	                x[j] = (float) (x[i] - rtemp) ;
+	                x[j+1] = (float) (x[i+1] - itemp) ;
+	                x[i] += rtemp ;
+	                x[i+1] += itemp ;            
+	            }
+	            
+	        }
+	        tablestep=tablestep>>1;
+	    }
+	 
+
+	    if (!forward) {
+			for (int u=0; u<len; u++) {
+				x[u] =(float) (2.0*x[u]/len);			
+				if (Math.abs(x[u]) <=tol)
+					x[u]=0;
+			}
+		}
+	    return ptab;
+	}
+	
+	public static Pair<double[],double[]> cfftp(double[] x, boolean forward, Pair<double[],double[]> ptab){
+		   
+		int nfft=DSP.nfft(x.length);	
+	    if (x.length!= nfft)
+			throw new IllegalArgumentException("Array size mismatch " + x.length);
+	    
+	    nfft=nfft>>1;
+	    int len = x.length ;
+
+	  //  System.out.println("len "+ len);
+	    FFTUtil.bit_reverse2( x ) ;
+	    int sign=forward? -1 : 1 ;
+	    
+		//compute twiddle coefficients
+	    if (ptab==null)
+	    	ptab=FFTUtil.expTable2 (len, sign);
+ 		 double[]cosTable=ptab.first;
+ 		 double[]sinTable=ptab.second;
+ 		
+ 		 if (cosTable.length!=nfft) {
+ 			 System.out.println("table length  mismatch" + cosTable.length );
  			ptab=FFTUtil.expTable (len, sign);
  	 		cosTable=ptab.first;
  	 		sinTable =ptab.second;
@@ -585,7 +780,7 @@ public class FFTProc {
 	
 	 
 	
-	/*
+	/* Maxima code
 	 fft_rec(x, w):=block ( [n:length(x), odd, even, r, l, i, hlen, v, tmp ],
 	local(v),
 	if n=1 then 
@@ -616,6 +811,148 @@ public class FFTProc {
 		System.arraycopy(s, 0, spad, 0, n);
 		return spad;
 	}
+	
+	public static double[] zeroPaddEnd(double s[]) {
+		final int n=s.length;
+		final int k=DSP.nextpow2(n);
+		final int n2=DSP.pow2(k);
+		//System.out.println("n2 " +n2);
+		double[] spad=new double[n2];
+		System.arraycopy(s, 0, spad, 0, n);
+		return spad;
+	}
+	
+	public static double[] zeroPaddMiddle(double s[]) {
+		final int n=s.length;
+		final int k=DSP.nextpow2(n);
+		final int n2=DSP.pow2(k);
+		//System.out.println("n2 " +n2);
+		double[] spad=new double[n2];
+		System.arraycopy(s, (n2-k)/2, spad, 0, n);
+		return spad;
+	}
+	
+	public static float[] zeroPaddMiddle(float s[]) {
+		final int n=s.length;
+		final int k=DSP.nextpow2(n);
+		final int n2=DSP.pow2(k);
+		//System.out.println("n2 " +n2);
+		float[] spad=new float[n2];
+		System.arraycopy(s, (n2-k)/2, spad, 0, n);
+		return spad;
+	}
+	
+	 /*
+	  *  from PixLib 2014
+	  */
+	
+	
+	/**
+	 * 
+	 * @param arr
+	 */
+	public static void fftshift1d(double[] arr) {
+		final int k=arr.length/2;		
+		for (int i=0; i<k; i++) {
+			final double tmp=arr[i];
+			arr[i]=arr[k+i];
+			arr[k+i]=tmp;			
+		}
+	}
+	
+	/**
+	 * assumes IComplexArray structure
+	 * @param arr
+	 */
+	public static void fftshift1c(double[] arr) {
+		final int k=arr.length/2;		
+		for (int i=0; i<k; i+=2) {
+			final double tmpr=arr[i];
+			final double tmpc=arr[i+1];
+			arr[i]=arr[k+i];
+			arr[i+1]=arr[k+i+1];
+			arr[k+i]=tmpr;
+			arr[k+i+1]=tmpc;
+		}
+	}
+	
+	public static void ifftshift1d(double[] arr) {
+		final int k= arr.length/2;
+		 
+		for (int i= arr.length-1; i>=k; i--) {
+			final double tmp=arr[i];
+			arr[i]=arr[i-k];
+			arr[i-k]=tmp;
+		}
+	}
+	
+	public static void ifftshift1c(double[] arr) {
+		final int k= arr.length/2;
+		 
+		for (int i= arr.length-2; i>=k; i-=2) {
+			final double tmpr=arr[i];
+			final double tmpc=arr[i+1];
+			arr[i]=arr[i-k];
+			arr[i+1]=arr[i-k+1];
+			arr[i-k]=tmpr;
+			arr[i-k+1]=tmpc;
+		}
+	}	
+
+	
+	/**
+	 * 
+	 * @param arr
+	 */
+	public static void fftshift1d(float[] arr) {
+		final int k=arr.length/2;		
+		for (int i=0; i<k; i++) {
+			final float tmp=arr[i];
+			arr[i]=arr[k+i];
+			arr[k+i]=tmp;			
+		}
+	}
+	
+	/**
+	 * assumes IComplexArray structure
+	 * @param arr
+	 */
+	public static void fftshift1c(float[] arr) {
+		final int k=arr.length/2;		
+		for (int i=0; i<k; i+=2) {
+			final float tmpr=arr[i];
+			final float tmpc=arr[i+1];
+			arr[i]=arr[k+i];
+			arr[i+1]=arr[k+i+1];
+			arr[k+i]=tmpr;
+			arr[k+i+1]=tmpc;
+		}
+	}
+	
+	public static void ifftshift1d(float[] arr) {
+		final int k= arr.length/2;
+		 
+		for (int i= arr.length-1; i>=k; i--) {
+			final float tmp=arr[i];
+			arr[i]=arr[i-k];
+			arr[i-k]=tmp;
+		}
+	}
+	
+	public static void ifftshift1c(float[] arr) {
+		final int k= arr.length/2;
+		 
+		for (int i= arr.length-2; i>=k; i-=2) {
+			final float tmpr=arr[i];
+			final float tmpc=arr[i+1];
+			arr[i]=arr[i-k];
+			arr[i+1]=arr[i-k+1];
+			arr[i-k]=tmpr;
+			arr[i-k+1]=tmpc;
+		}
+	}	
+	
+
 	
 } // end of class
 ///////////////////////////////

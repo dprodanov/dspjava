@@ -1,13 +1,8 @@
 package test.dsp;
 import dsp.FFTProc;
-import ij.ImageJ;
-import ij.ImagePlus;
-import ij.ImageStack;
-import ij.process.FloatProcessor;
 import ijaux.Util;
 import ijaux.datatype.Pair;
-import ijaux.dsp.DSP;
-import ijaux.dsp.FFT;
+import dsp.DSP;
 
 
 public class testFFT2 {
@@ -30,7 +25,7 @@ public class testFFT2 {
 	public static void main(String[] args) {
 		Util.printFloatArray(arr);
 		
-		int nfft=FFT.nfft(arr.length);
+		int nfft=DSP.nfft(arr.length);
 		System.out.println ("nfft :" +nfft);
 		final Pair<float[], float[]> carr= FFTProc.fftR2C1d(arr,  -1, nfft);
 		float[] re=carr.first;

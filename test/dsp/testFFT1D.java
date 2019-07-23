@@ -3,8 +3,7 @@ import dsp.FFTProc;
 import ij.process.FloatProcessor;
 import ijaux.Util;
 import ijaux.datatype.Pair;
-import ijaux.dsp.DSP;
-import ijaux.dsp.FFT;
+import dsp.DSP;
 import static dsp.TestUtil.*;
 
 public class testFFT1D
@@ -55,7 +54,7 @@ public class testFFT1D
 		float[] row2=x.clone();
 	
 		
-		int nfft=FFT.nfft(row1.length);
+		int nfft=DSP.nfft(row1.length);
 		
 		System.out.println ("\\ "+DSP.nextpow2(row1.length)+" nfft "+nfft);
 		
@@ -90,7 +89,7 @@ public class testFFT1D
 		Util.printFloatArray(im);
 		System.out.println ("********************************");
 		System.out.println ("\nIFFT");
-		nfft=FFT.nfft(xr.length);
+		nfft=DSP.nfft(xr.length);
 		Pair<float[], float[]> carri= FFTProc.fftC2C1d(xr, xi, +1, nfft);
 		
 		System.out.println ("\nReal part");

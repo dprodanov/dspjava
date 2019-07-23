@@ -11,8 +11,7 @@ import java.util.Arrays;
 
 import ijaux.Util;
 import ijaux.datatype.Pair;
-import ijaux.dsp.DSP;
-import ijaux.dsp.FFT;
+import dsp.DSP;
 import dsp.FFTProc;
 //import dsp.kFFTProc;
 

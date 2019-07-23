@@ -1,5 +1,4 @@
 package dsp;
-import ij.process.ImageProcessor;
 import Jama.Matrix;
 
 
@@ -18,6 +17,27 @@ public class DSP {
 			ret[i]=arr[i];		
 		return ret;
 	}
+	public static float[] arrF2Ci (float[] arr) {
+		float[] ret=new float[2*arr.length];
+		for (int i=0, k=0; i<arr.length; i++, k+=2) 
+			ret[k]= arr[i];
+		return ret;
+	}
+	
+	public static double[] arrF2Cid (float[] arr) {
+		double[] ret=new double[2*arr.length];
+		for (int i=0, k=0; i<arr.length; i++, k+=2) 
+			ret[k]= arr[i];
+		return ret;
+	}
+
+	public static double[] arrD2Ci (double[] arr) {
+		double[] ret=new double[2*arr.length];	
+		for (int i=0, k=0; i<arr.length; i++, k+=2) 
+			ret[k]= arr[i];
+		return ret;
+	}
+	
 	
 	// implements Matlab's function flipr
 		public static void flipr (double[][] kernel) {		
@@ -71,6 +91,8 @@ public class DSP {
 				kernel[s-i]=c;
 			}
 		}
+		
+		
 	//The filter is a "Direct Form II Transposed"
 		//  implementation of the standard difference equation:
 		//   a(1)*y(n) = b(1)*x(n) + b(2)*x(n-1) + ... + b(nb+1)*x(n-nb)
@@ -157,5 +179,42 @@ public class DSP {
 			}
 			return false;
 		}
+		
+		public static int nfft(int z) {
+			return  pow2( nextpow2(z));
+		}
+		
+		public static int nextpow2(int u) {
+			int i=0;
+			if (u<0) u=-u;
+			if (u<=1)
+				return 0;
+			if ((u&(u-1)) ==0) { i--; }
+			while (u>0) {
+				u>>=1;
+				//System.out.println(u +" "+i);
+				i++;
+			}
+			return i;	
+		}
+		
+		public static int pow2(int n) {
+			if (n==0) return 1;
+		/*	if ((n & (n - 1)) == 0) {
+				return n; // x is already a power-of-two number 
+			}*/
+			return 2<<(n-1);
+		}
 
+		public static void printvector(float[] data) {
+			for (int i=0; i<data.length; i++) {		
+					System.out.print(data[i]+",");		
+			}
+		}
+		
+		public static void printvector(double[] data) {
+			for (int i=0; i<data.length; i++) {		
+					System.out.print(data[i]+",");		
+			}
+		}
 }

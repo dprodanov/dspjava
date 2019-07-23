@@ -1,10 +1,9 @@
 package test.dsp;
+import dsp.DSP;
 import dsp.FFTProc;
-import dsp.FFTProc3;
 import dsp.FFTUtil;
 import ijaux.Util;
 import ijaux.datatype.Pair;
-import ijaux.dsp.FFT;
 
 public class benchFFT1 {
 
@@ -54,7 +53,7 @@ System.out.println("******************");
 			
 			long time=-System.nanoTime();	
 			for (int i=0; i<niter; i++) {
-				FFTProc3.rfft2(x);
+				FFTProc.rfft(x);
 			}
 			time+=System.nanoTime();
 			System.out.println("size: "+n+"\t execution time: " + String.format("%.4f", time / 1000.0/niter ) + " usec");
@@ -67,7 +66,7 @@ System.out.println("******************");
 		for (int k=0; k<sizes1D.length; k++) {
 			int n=sizes1D[k]/2;
 			float[] row1=(float[]) Util.rand(n, float.class);
-			int nfft=FFT.nfft(row1.length);
+			int nfft=DSP.nfft(row1.length);
 			long time=-System.nanoTime();	
 			for (int i=0; i<niter; i++) {
 				
@@ -97,7 +96,7 @@ System.out.println("******************");
 		for (int k=0; k<sizes1D.length; k++) {
 			int n=sizes1D[k];
 			float[] row1=(float[]) Util.rand(n, float.class);
-			int nfft=FFT.nfft(row1.length);
+			int nfft=DSP.nfft(row1.length);
 			long time=-System.nanoTime();		
 			for (int i=0; i<niter; i++) {
 				FFTProc.fftR2Cp1d(row1, -1, nfft);
@@ -136,12 +135,12 @@ System.out.println("******************");
 		for (int k=0; k<sizes1D.length; k++) {
 			int n=sizes1D[k];
 			float[] x=(float[]) Util.rand(n, float.class);
-			Pair<double[],double[]> ptab=FFTUtil.expTable(2*n, -1);
+			Pair<double[],double[]> ptab=FFTUtil.expTable(n, -1);
 	 		//int nfft=FFT.nfft(row1.length);
 			
 			long time=-System.nanoTime();	
 			for (int i=0; i<niter; i++) {
-				FFTProc3.rfftp2(x,  ptab);
+				FFTProc.rfftp(x,  ptab);
 			}
 			time+=System.nanoTime();
 			System.out.println("size: "+n+"\t execution time: " + String.format("%.4f", time / 1000.0/niter ) + " usec");
